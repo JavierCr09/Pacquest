@@ -188,7 +188,7 @@ body {
   .movement-buttons {
     height: 28%;
     justify-content: flex-end;
-    padding-bottom: 50px;
+    padding-bottom: 20px;
   }
 }
 
@@ -412,7 +412,7 @@ body {
   box-sizing: border-box;
   justify-content: flex-end;
   /* Push arrows lower */
-  padding-bottom: max(env(safe-area-inset-bottom, 0), 20px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0), 50px);
 
   .row {
     display: flex;
