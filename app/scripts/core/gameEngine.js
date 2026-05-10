@@ -113,6 +113,7 @@ class GameEngine {
     let numUpdateSteps = 0;
     while (this.elapsedMs >= this.timestep) {
       this.update(this.timestep, this.entityList);
+      if (!this.running) break;
       this.elapsedMs -= this.timestep;
       numUpdateSteps += 1;
       if (numUpdateSteps >= this.maxFps) {
@@ -141,9 +142,11 @@ class GameEngine {
     this.processFrames();
     this.draw(this.elapsedMs / this.timestep, this.entityList);
 
-    this.frameId = requestAnimationFrame((nextTimestamp) => {
-      this.mainLoop(nextTimestamp);
-    });
+    if (this.running) {
+      this.frameId = requestAnimationFrame((nextTimestamp) => {
+        this.mainLoop(nextTimestamp);
+      });
+    }
   }
 
   /**

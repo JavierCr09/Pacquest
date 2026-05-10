@@ -180,15 +180,15 @@ body {
 
 @media (orientation: portrait) {
   .game-ui {
-    height: 72%;
+    height: 100%;
     margin-top: 70px;
     justify-content: flex-start;
   }
 
   .movement-buttons {
-    height: 28%;
-    justify-content: flex-end;
+    justify-content: center;
     padding-bottom: 20px;
+    margin-top: 10px;
   }
 }
 
@@ -405,22 +405,15 @@ body {
   left: 90%;
 }
 
-._95 {
-  left: 95%;
-}
-
-.movement-buttons {
-  align-items: center;
-  bottom: 0;
+.controls-toggle-wrapper {
   display: flex;
-  flex-direction: column;
-  height: 30%;
-  position: fixed;
+  justify-content: center;
   width: 100%;
-  box-sizing: border-box;
-  justify-content: flex-end;
-  /* Push arrows lower */
-  padding-bottom: max(env(safe-area-inset-bottom, 0), 30px);
+  margin-top: 10px;
+
+  @media (max-height: 600px) {
+    display: none !important;
+  }
 
   .toggle-controls-btn {
     background-color: transparent;
@@ -428,26 +421,43 @@ body {
     border-radius: 8px;
     color: $logo-yellow;
     font-size: 14px;
-    padding: 8px 12px;
-    margin-bottom: 10px;
+    padding: 1em;
     cursor: pointer;
     text-transform: uppercase;
     font-family: 'Press Start 2P', sans-serif;
     outline: none;
-    z-index: 10;
+    pointer-events: auto;
     
     @media (max-width: 600px) {
       font-size: 10px;
-      padding: 6px 10px;
-      margin-bottom: 6px;
     }
 
     &:active {
       background-color: rgba(252, 199, 63, 0.2);
     }
   }
+}
+
+._95 {
+  left: 95%;
+}
+
+.movement-buttons {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+
+  @media (max-height: 600px) {
+    display: none !important;
+  }
+
+  pointer-events: none;
 
   .d-pad-container {
+    pointer-events: auto;
     display: flex;
     flex-direction: column;
     align-items: center;

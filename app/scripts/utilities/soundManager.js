@@ -109,7 +109,10 @@ class SoundManager {
    * @param {String} sound
    */
   async setAmbience(sound, keepCurrentAmbience) {
-    if (!this.fetchingAmbience && !this.cutscene) {
+    if (!this.cutscene) {
+      this.latestAmbienceRequest = sound;
+      this.isAmbienceStopped = false;
+
       if (!keepCurrentAmbience) {
         this.currentAmbience = sound;
         this.paused = false;
@@ -118,7 +121,11 @@ class SoundManager {
       }
 
       if (this.ambienceSource) {
-        this.ambienceSource.stop();
+        try {
+          this.ambienceSource.stop();
+        } catch (e) {
+          // Ignore InvalidStateError if already stopped or not started
+        }
       }
 
       if (this.masterVolume !== 0) {
@@ -128,6 +135,11 @@ class SoundManager {
         );
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await this.ambience.decodeAudioData(arrayBuffer);
+
+        if (this.latestAmbienceRequest !== sound || this.isAmbienceStopped) {
+          this.fetchingAmbience = false;
+          return;
+        }
 
         this.ambienceSource = this.ambience.createBufferSource();
         this.ambienceSource.buffer = audioBuffer;
@@ -159,8 +171,13 @@ class SoundManager {
    * Stops the ambience
    */
   stopAmbience() {
+    this.isAmbienceStopped = true;
     if (this.ambienceSource) {
-      this.ambienceSource.stop();
+      try {
+        this.ambienceSource.stop();
+      } catch (e) {
+        // Ignore InvalidStateError if already stopped or not started
+      }
     }
   }
 }

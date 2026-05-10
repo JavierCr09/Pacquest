@@ -1904,6 +1904,7 @@ class GameCoordinator {
     window.addEventListener('addTimer', this.addTimer.bind(this));
     window.addEventListener('removeTimer', this.removeTimer.bind(this));
     window.addEventListener('releaseGhost', this.releaseGhost.bind(this));
+    window.addEventListener('resize', this.handleResize.bind(this));
 
     const directions = [
       'up', 'down', 'left', 'right',
@@ -1951,8 +1952,37 @@ class GameCoordinator {
     document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
   }
 
+  handleResize() {
+    // Automatically pause the game on orientation change
+    if (this.gameEngine && this.gameEngine.started && this.allowPause && !this.cutscene) {
+      this.handlePauseKey();
+    }
+
+    const _vw = Math.min(document.documentElement.clientWidth, window.innerWidth || 0);
+    const _vh = Math.min(document.documentElement.clientHeight, window.innerHeight || 0);
+    
+    // Original physical pixel dimensions of the game UI based on the load-time scaledTileSize
+    const uiWidth = this.scaledTileSize * 28;
+    const uiHeight = this.scaledTileSize * 36; // Maze + UI height roughly
+
+    let scaleFactor = 1;
+
+    if (_vw > _vh) {
+      // Landscape: scale so the height of the UI is 95% of viewport height
+      scaleFactor = (_vh * 0.95) / uiHeight;
+      this.gameUi.style.transform = `scale(${scaleFactor})`;
+      this.gameUi.style.transformOrigin = 'center center';
+    } else {
+      // Portrait: fit width (93%) or height (61%)
+      const scaleW = (_vw * 0.93) / uiWidth;
+      const scaleH = (_vh * 0.61) / uiHeight;
+      scaleFactor = Math.min(scaleW, scaleH);
+      this.gameUi.style.transform = `scale(${scaleFactor})`;
+      this.gameUi.style.transformOrigin = 'center top';
+    }
+  }
+
   handleTouchStart(e) {
-    if (!this.useSwipeControls) return;
     const touch = e.touches[0];
     this.touchStartX = touch.clientX;
     this.touchStartY = touch.clientY;
@@ -1961,14 +1991,13 @@ class GameCoordinator {
   }
 
   handleTouchMove(e) {
-    if (!this.useSwipeControls) return;
     const touch = e.touches[0];
     this.touchEndX = touch.clientX;
     this.touchEndY = touch.clientY;
   }
 
   handleTouchEnd(e) {
-    if (!this.useSwipeControls || !this.touchStartX || !this.touchStartY) return;
+    if (!this.touchStartX || !this.touchStartY) return;
     
     const diffX = this.touchEndX - this.touchStartX;
     const diffY = this.touchEndY - this.touchStartY;
@@ -2895,6 +2924,7 @@ class GameEngine {
     let numUpdateSteps = 0;
     while (this.elapsedMs >= this.timestep) {
       this.update(this.timestep, this.entityList);
+      if (!this.running) break;
       this.elapsedMs -= this.timestep;
       numUpdateSteps += 1;
       if (numUpdateSteps >= this.maxFps) {
@@ -2923,9 +2953,11 @@ class GameEngine {
     this.processFrames();
     this.draw(this.elapsedMs / this.timestep, this.entityList);
 
-    this.frameId = requestAnimationFrame((nextTimestamp) => {
-      this.mainLoop(nextTimestamp);
-    });
+    if (this.running) {
+      this.frameId = requestAnimationFrame((nextTimestamp) => {
+        this.mainLoop(nextTimestamp);
+      });
+    }
   }
 
   /**
@@ -4332,7 +4364,10 @@ class SoundManager {
    * @param {String} sound
    */
   async setAmbience(sound, keepCurrentAmbience) {
-    if (!this.fetchingAmbience && !this.cutscene) {
+    if (!this.cutscene) {
+      this.latestAmbienceRequest = sound;
+      this.isAmbienceStopped = false;
+
       if (!keepCurrentAmbience) {
         this.currentAmbience = sound;
         this.paused = false;
@@ -4341,7 +4376,11 @@ class SoundManager {
       }
 
       if (this.ambienceSource) {
-        this.ambienceSource.stop();
+        try {
+          this.ambienceSource.stop();
+        } catch (e) {
+          // Ignore InvalidStateError if already stopped or not started
+        }
       }
 
       if (this.masterVolume !== 0) {
@@ -4351,6 +4390,11 @@ class SoundManager {
         );
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await this.ambience.decodeAudioData(arrayBuffer);
+
+        if (this.latestAmbienceRequest !== sound || this.isAmbienceStopped) {
+          this.fetchingAmbience = false;
+          return;
+        }
 
         this.ambienceSource = this.ambience.createBufferSource();
         this.ambienceSource.buffer = audioBuffer;
@@ -4382,8 +4426,13 @@ class SoundManager {
    * Stops the ambience
    */
   stopAmbience() {
+    this.isAmbienceStopped = true;
     if (this.ambienceSource) {
-      this.ambienceSource.stop();
+      try {
+        this.ambienceSource.stop();
+      } catch (e) {
+        // Ignore InvalidStateError if already stopped or not started
+      }
     }
   }
 }
