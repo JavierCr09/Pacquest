@@ -818,6 +818,63 @@ class GameCoordinator {
         this.startTrivia(true);
       },
     );
+
+    this.toggleControlsBtn = document.getElementById('toggle-controls-btn');
+    this.dPadContainer = document.getElementById('d-pad-container');
+    this.useSwipeControls = false;
+
+    if (this.toggleControlsBtn) {
+      this.toggleControlsBtn.addEventListener('click', () => {
+        this.useSwipeControls = !this.useSwipeControls;
+        if (this.useSwipeControls) {
+          this.toggleControlsBtn.innerText = 'MODO: DESLIZAR';
+          this.dPadContainer.classList.add('hidden');
+        } else {
+          this.toggleControlsBtn.innerText = 'MODO: CRUCETA';
+          this.dPadContainer.classList.remove('hidden');
+        }
+      });
+    }
+
+    document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+    document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: true });
+    document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+  }
+
+  handleTouchStart(e) {
+    if (!this.useSwipeControls) return;
+    const touch = e.touches[0];
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.touchEndX = touch.clientX;
+    this.touchEndY = touch.clientY;
+  }
+
+  handleTouchMove(e) {
+    if (!this.useSwipeControls) return;
+    const touch = e.touches[0];
+    this.touchEndX = touch.clientX;
+    this.touchEndY = touch.clientY;
+  }
+
+  handleTouchEnd(e) {
+    if (!this.useSwipeControls || !this.touchStartX || !this.touchStartY) return;
+    
+    const diffX = this.touchEndX - this.touchStartX;
+    const diffY = this.touchEndY - this.touchStartY;
+    
+    if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0) this.changeDirection('right');
+        else this.changeDirection('left');
+      } else {
+        if (diffY > 0) this.changeDirection('down');
+        else this.changeDirection('up');
+      }
+    }
+    
+    this.touchStartX = null;
+    this.touchStartY = null;
   }
 
   /**
@@ -861,7 +918,7 @@ class GameCoordinator {
         }
       }, 500);
 
-      this.gameEngine.changePausedState(this.gameEngine.running);
+      this.gameEngine.changePausedState(this.gameEngine.started);
       this.soundManager.play('pause');
 
       if (this.gameEngine.started) {

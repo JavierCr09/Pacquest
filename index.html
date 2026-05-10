@@ -15,7 +15,8 @@
   <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
   <script src='build/app.js'></script>
   <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'>
-  <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Press+Start+2P&display=swap' rel='stylesheet'>
+  <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Press+Start+2P&display=swap'
+    rel='stylesheet'>
   <link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>
   <title>Pacman</title>
 </head>
@@ -38,23 +39,25 @@
       <button id='pause-btn-wrapper' aria-label='Pausa'>
         <!-- Pause icon SVG -->
         <svg id='pause-button' class='header-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'>
-          <rect x='5' y='3' width='4' height='18' rx='1'/>
-          <rect x='15' y='3' width='4' height='18' rx='1'/>
+          <rect x='5' y='3' width='4' height='18' rx='1' />
+          <rect x='15' y='3' width='4' height='18' rx='1' />
         </svg>
       </button>
       <button id='sound-btn-wrapper' aria-label='Volumen'>
         <!-- Volume icon — swapped by JS via #sound-button -->
         <svg id='sound-button' class='header-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'>
           <!-- volume_up paths (default) -->
-          <path id='sound-icon-path1' d='M3 9v6h4l5 5V4L7 9H3z'/>
-          <path id='sound-icon-path2' d='M16.5 12A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z'/>
-          <path id='sound-icon-path3' d='M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77 0-4.28-2.99-7.86-7-8.77z'/>
+          <path id='sound-icon-path1' d='M3 9v6h4l5 5V4L7 9H3z' />
+          <path id='sound-icon-path2' d='M16.5 12A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z' />
+          <path id='sound-icon-path3'
+            d='M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77 0-4.28-2.99-7.86-7-8.77z' />
         </svg>
       </button>
       <!-- Fullscreen button: only visible on narrow portrait screens -->
       <button id='fullscreen-btn-wrapper' class='fullscreen-btn' aria-label='Pantalla completa'>
-        <svg id='fullscreen-icon' class='header-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'>
-          <path d='M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z'/>
+        <svg id='fullscreen-icon' class='header-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'
+          fill='white'>
+          <path d='M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z' />
         </svg>
       </button>
     </div>
@@ -94,31 +97,37 @@
     </div>
 
     <div id='movement-buttons' class='movement-buttons'>
-      <div class='row'>
-        <button id='button-up' class='button-up' aria-label='Arriba'>
-          <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M7 14l5-5 5 5z'/>
-          </svg>
-        </button>
-      </div>
-      <div class='row'>
-        <button id='button-left' class='button-left' aria-label='Izquierda'>
-          <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M14 7l-5 5 5 5z'/>
-          </svg>
-        </button>
-        <button id='button-right' class='button-right' aria-label='Derecha'>
-          <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M10 17l5-5-5-5z'/>
-          </svg>
-        </button>
-      </div>
-      <div class='row'>
-        <button id='button-down' class='button-down' aria-label='Abajo'>
-          <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M7 10l5 5 5-5z'/>
-          </svg>
-        </button>
+      <button id='toggle-controls-btn' class='toggle-controls-btn' aria-label='Toggle Controls'>
+        MODO: CRUCETA
+      </button>
+      <br>
+      <div id='d-pad-container' class='d-pad-container'>
+        <div class='row'>
+          <button id='button-up' class='button-up' aria-label='Arriba'>
+            <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
+              <path d='M7 14l5-5 5 5z' />
+            </svg>
+          </button>
+        </div>
+        <div class='row'>
+          <button id='button-left' class='button-left' aria-label='Izquierda'>
+            <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
+              <path d='M14 7l-5 5 5 5z' />
+            </svg>
+          </button>
+          <button id='button-right' class='button-right' aria-label='Derecha'>
+            <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
+              <path d='M10 17l5-5-5-5z' />
+            </svg>
+          </button>
+        </div>
+        <div class='row'>
+          <button id='button-down' class='button-down' aria-label='Abajo'>
+            <svg class='arrow-icon' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'>
+              <path d='M7 10l5 5 5-5z' />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 

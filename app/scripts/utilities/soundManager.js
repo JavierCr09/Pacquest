@@ -7,6 +7,26 @@ class SoundManager {
     this.cutscene = true;
 
     this.ambience = new AudioContext();
+
+    this.dotBuffers = [null, null];
+    this.currentDotSound = 0;
+    this.dotPlayerActive = false;
+    
+    this.preloadDotSounds();
+  }
+
+  async preloadDotSounds() {
+    try {
+      const response1 = await fetch(`${this.baseUrl}dot_1.${this.fileFormat}`);
+      const arrayBuffer1 = await response1.arrayBuffer();
+      this.dotBuffers[0] = await this.ambience.decodeAudioData(arrayBuffer1);
+
+      const response2 = await fetch(`${this.baseUrl}dot_2.${this.fileFormat}`);
+      const arrayBuffer2 = await response2.arrayBuffer();
+      this.dotBuffers[1] = await this.ambience.decodeAudioData(arrayBuffer2);
+    } catch (e) {
+      console.error('Failed to load dot sounds', e);
+    }
   }
 
   /**
@@ -28,9 +48,7 @@ class SoundManager {
       this.soundEffect.volume = this.masterVolume;
     }
 
-    if (this.dotPlayer) {
-      this.dotPlayer.volume = this.masterVolume;
-    }
+
 
     if (this.masterVolume === 0) {
       this.stopAmbience();
@@ -56,16 +74,22 @@ class SoundManager {
   playDotSound() {
     this.queuedDotSound = true;
 
-    if (!this.dotPlayer) {
+    if (!this.dotPlayerActive && this.dotBuffers[0] && this.dotBuffers[1]) {
       this.queuedDotSound = false;
-      this.dotSound = (this.dotSound === 1) ? 2 : 1;
+      this.dotPlayerActive = true;
+      this.currentDotSound = (this.currentDotSound === 0) ? 1 : 0;
 
-      this.dotPlayer = new Audio(
-        `${this.baseUrl}dot_${this.dotSound}.${this.fileFormat}`,
-      );
-      this.dotPlayer.onended = this.dotSoundEnded.bind(this);
-      this.dotPlayer.volume = this.masterVolume;
-      this.dotPlayer.play();
+      const source = this.ambience.createBufferSource();
+      source.buffer = this.dotBuffers[this.currentDotSound];
+      
+      const gainNode = this.ambience.createGain();
+      gainNode.gain.value = this.masterVolume;
+      
+      source.connect(gainNode);
+      gainNode.connect(this.ambience.destination);
+      
+      source.onended = this.dotSoundEnded.bind(this);
+      source.start();
     }
   }
 
@@ -73,7 +97,7 @@ class SoundManager {
    * Deletes the dotSound player and plays another dot sound if needed
    */
   dotSoundEnded() {
-    this.dotPlayer = undefined;
+    this.dotPlayerActive = false;
 
     if (this.queuedDotSound) {
       this.playDotSound();

@@ -1928,6 +1928,63 @@ class GameCoordinator {
         this.startTrivia(true);
       },
     );
+
+    this.toggleControlsBtn = document.getElementById('toggle-controls-btn');
+    this.dPadContainer = document.getElementById('d-pad-container');
+    this.useSwipeControls = false;
+
+    if (this.toggleControlsBtn) {
+      this.toggleControlsBtn.addEventListener('click', () => {
+        this.useSwipeControls = !this.useSwipeControls;
+        if (this.useSwipeControls) {
+          this.toggleControlsBtn.innerText = 'MODO: DESLIZAR';
+          this.dPadContainer.classList.add('hidden');
+        } else {
+          this.toggleControlsBtn.innerText = 'MODO: CRUCETA';
+          this.dPadContainer.classList.remove('hidden');
+        }
+      });
+    }
+
+    document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+    document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: true });
+    document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+  }
+
+  handleTouchStart(e) {
+    if (!this.useSwipeControls) return;
+    const touch = e.touches[0];
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.touchEndX = touch.clientX;
+    this.touchEndY = touch.clientY;
+  }
+
+  handleTouchMove(e) {
+    if (!this.useSwipeControls) return;
+    const touch = e.touches[0];
+    this.touchEndX = touch.clientX;
+    this.touchEndY = touch.clientY;
+  }
+
+  handleTouchEnd(e) {
+    if (!this.useSwipeControls || !this.touchStartX || !this.touchStartY) return;
+    
+    const diffX = this.touchEndX - this.touchStartX;
+    const diffY = this.touchEndY - this.touchStartY;
+    
+    if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0) this.changeDirection('right');
+        else this.changeDirection('left');
+      } else {
+        if (diffY > 0) this.changeDirection('down');
+        else this.changeDirection('up');
+      }
+    }
+    
+    this.touchStartX = null;
+    this.touchStartY = null;
   }
 
   /**
@@ -1971,7 +2028,7 @@ class GameCoordinator {
         }
       }, 500);
 
-      this.gameEngine.changePausedState(this.gameEngine.running);
+      this.gameEngine.changePausedState(this.gameEngine.started);
       this.soundManager.play('pause');
 
       if (this.gameEngine.started) {
@@ -4173,6 +4230,26 @@ class SoundManager {
     this.cutscene = true;
 
     this.ambience = new AudioContext();
+
+    this.dotBuffers = [null, null];
+    this.currentDotSound = 0;
+    this.dotPlayerActive = false;
+    
+    this.preloadDotSounds();
+  }
+
+  async preloadDotSounds() {
+    try {
+      const response1 = await fetch(`${this.baseUrl}dot_1.${this.fileFormat}`);
+      const arrayBuffer1 = await response1.arrayBuffer();
+      this.dotBuffers[0] = await this.ambience.decodeAudioData(arrayBuffer1);
+
+      const response2 = await fetch(`${this.baseUrl}dot_2.${this.fileFormat}`);
+      const arrayBuffer2 = await response2.arrayBuffer();
+      this.dotBuffers[1] = await this.ambience.decodeAudioData(arrayBuffer2);
+    } catch (e) {
+      console.error('Failed to load dot sounds', e);
+    }
   }
 
   /**
@@ -4194,9 +4271,7 @@ class SoundManager {
       this.soundEffect.volume = this.masterVolume;
     }
 
-    if (this.dotPlayer) {
-      this.dotPlayer.volume = this.masterVolume;
-    }
+
 
     if (this.masterVolume === 0) {
       this.stopAmbience();
@@ -4222,16 +4297,22 @@ class SoundManager {
   playDotSound() {
     this.queuedDotSound = true;
 
-    if (!this.dotPlayer) {
+    if (!this.dotPlayerActive && this.dotBuffers[0] && this.dotBuffers[1]) {
       this.queuedDotSound = false;
-      this.dotSound = (this.dotSound === 1) ? 2 : 1;
+      this.dotPlayerActive = true;
+      this.currentDotSound = (this.currentDotSound === 0) ? 1 : 0;
 
-      this.dotPlayer = new Audio(
-        `${this.baseUrl}dot_${this.dotSound}.${this.fileFormat}`,
-      );
-      this.dotPlayer.onended = this.dotSoundEnded.bind(this);
-      this.dotPlayer.volume = this.masterVolume;
-      this.dotPlayer.play();
+      const source = this.ambience.createBufferSource();
+      source.buffer = this.dotBuffers[this.currentDotSound];
+      
+      const gainNode = this.ambience.createGain();
+      gainNode.gain.value = this.masterVolume;
+      
+      source.connect(gainNode);
+      gainNode.connect(this.ambience.destination);
+      
+      source.onended = this.dotSoundEnded.bind(this);
+      source.start();
     }
   }
 
@@ -4239,7 +4320,7 @@ class SoundManager {
    * Deletes the dotSound player and plays another dot sound if needed
    */
   dotSoundEnded() {
-    this.dotPlayer = undefined;
+    this.dotPlayerActive = false;
 
     if (this.queuedDotSound) {
       this.playDotSound();
