@@ -43,9 +43,11 @@ body {
 }
 
 .header-buttons {
-  margin: 16px;
+  margin: 8px;
   position: absolute;
   width: 100%;
+  display: flex;
+  gap: 4px;
 
   button {
     background: none;
@@ -53,10 +55,28 @@ body {
     color: $white;
     cursor: pointer;
     outline: none;
-    padding: 0;
+    padding: 4px;
+    line-height: 1;
 
     .material-icons {
-      font-size: 40px;
+      font-family: 'Material Icons';
+      font-size: 36px;
+      font-style: normal;
+      font-weight: normal;
+      display: inline-block;
+      line-height: 1;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+
+      @media (max-width: 480px) {
+        font-size: 28px;
+      }
     }
   }
 }
@@ -70,6 +90,10 @@ body {
   user-select: none;
   visibility: hidden;
   z-index: 1;
+
+  @media (max-width: 480px) {
+    font-size: 30px;
+  }
 }
 
 .game-ui {
@@ -292,6 +316,9 @@ body {
   height: 34%;
   position: fixed;
   width: 100%;
+  /* ensure the button area doesn't overflow the screen */
+  box-sizing: border-box;
+  padding-bottom: env(safe-area-inset-bottom, 0);
 
   .row {
     display: flex;
@@ -305,9 +332,20 @@ body {
     border-radius: 5px;
     color: $blue;
     height: 7vh;
+    width: 7vh;
     outline: none;
     padding: 0;
     user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    @media (max-width: 480px) {
+      height: 10vw;
+      width: 10vw;
+      border-width: 2px;
+    }
 
     &:active {
       background: radial-gradient(
@@ -327,6 +365,10 @@ body {
     border-right: 0;
     border-top-right-radius: 0;
     margin-right: calc(7vh - 6px);
+
+    @media (max-width: 480px) {
+      margin-right: calc(10vw - 4px);
+    }
   }
 
   .button-right {
@@ -342,8 +384,26 @@ body {
   }
 
   .material-icons {
+    font-family: 'Material Icons';
     font-size: 7vh;
+    font-style: normal;
+    font-weight: normal;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
     margin: -3px;
+
+    @media (max-width: 480px) {
+      font-size: 8vw;
+      margin: 0;
+    }
   }
 }
 
