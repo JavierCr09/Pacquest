@@ -850,26 +850,36 @@ class GameCoordinator {
 
     const _vw = Math.min(document.documentElement.clientWidth, window.innerWidth || 0);
     const _vh = Math.min(document.documentElement.clientHeight, window.innerHeight || 0);
-    
-    // Original physical pixel dimensions of the game UI based on the load-time scaledTileSize
-    const uiWidth = this.scaledTileSize * 28;
-    const uiHeight = this.scaledTileSize * 36; // Maze + UI height roughly
+
+    // Temporarily clear transform to get true scrollHeight/scrollWidth
+    this.gameUi.style.transform = 'none';
+    const uiWidth = this.gameUi.scrollWidth;
+    const uiHeight = this.gameUi.scrollHeight;
 
     let scaleFactor = 1;
+    let marginTop = 0;
 
     if (_vw > _vh) {
-      // Landscape: scale so the height of the UI is 95% of viewport height
+      // Landscape mobile: scale so the height of the UI is 95% of viewport height
       scaleFactor = (_vh * 0.95) / uiHeight;
       this.gameUi.style.transform = `scale(${scaleFactor})`;
-      this.gameUi.style.transformOrigin = 'center center';
+      this.gameUi.style.transformOrigin = 'center top';
+
+      const scaledHeight = uiHeight * scaleFactor;
+      marginTop = Math.max(0, (_vh - scaledHeight) / 2);
     } else {
-      // Portrait: fit width (93%) or height (61%)
+      // Portrait mobile: fit width (93%) or height (61%)
       const scaleW = (_vw * 0.93) / uiWidth;
       const scaleH = (_vh * 0.61) / uiHeight;
       scaleFactor = Math.min(scaleW, scaleH);
       this.gameUi.style.transform = `scale(${scaleFactor})`;
       this.gameUi.style.transformOrigin = 'center top';
+
+      // Keep top margin on portrait to leave room for the header text
+      marginTop = 70;
     }
+
+    this.gameUi.style.marginTop = `${marginTop}px`;
   }
 
   handleTouchStart(e) {

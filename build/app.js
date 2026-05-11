@@ -1108,6 +1108,208 @@ class Pacman {
 }
 
 
+class Pickup {
+  constructor(type, scaledTileSize, column, row, pacman, mazeDiv, points) {
+    this.type = type;
+    this.pacman = pacman;
+    this.mazeDiv = mazeDiv;
+    this.points = points;
+    this.nearPacman = false;
+
+    this.fruitImages = {
+      100: 'cherry',
+      300: 'strawberry',
+      500: 'orange',
+      700: 'apple',
+      1000: 'melon',
+      2000: 'galaxian',
+      3000: 'bell',
+      5000: 'key',
+    };
+
+    this.setStyleMeasurements(type, scaledTileSize, column, row, points);
+  }
+
+  /**
+   * Resets the pickup's visibility
+   */
+  reset() {
+    this.animationTarget.style.visibility = (this.type === 'fruit')
+      ? 'hidden' : 'visible';
+  }
+
+  /**
+   * Sets various style measurements for the pickup depending on its type
+   * @param {('pacdot'|'powerPellet'|'fruit')} type - The classification of pickup
+   * @param {number} scaledTileSize
+   * @param {number} column
+   * @param {number} row
+   * @param {number} points
+   */
+  setStyleMeasurements(type, scaledTileSize, column, row, points) {
+    if (type === 'pacdot') {
+      this.size = scaledTileSize * 0.25;
+      this.x = (column * scaledTileSize) + ((scaledTileSize / 8) * 3);
+      this.y = (row * scaledTileSize) + ((scaledTileSize / 8) * 3);
+    } else if (type === 'powerPellet') {
+      this.size = scaledTileSize;
+      this.x = (column * scaledTileSize);
+      this.y = (row * scaledTileSize);
+    } else {
+      this.size = scaledTileSize * 2;
+      this.x = (column * scaledTileSize) - (scaledTileSize * 0.5);
+      this.y = (row * scaledTileSize) - (scaledTileSize * 0.5);
+    }
+
+    this.center = {
+      x: column * scaledTileSize,
+      y: row * scaledTileSize,
+    };
+
+    this.animationTarget = document.createElement('div');
+    this.animationTarget.style.position = 'absolute';
+    this.animationTarget.style.backgroundSize = `${this.size}px`;
+    this.animationTarget.style.backgroundImage = this.determineImage(
+      type, points,
+    );
+    this.animationTarget.style.height = `${this.size}px`;
+    this.animationTarget.style.width = `${this.size}px`;
+    this.animationTarget.style.top = `${this.y}px`;
+    this.animationTarget.style.left = `${this.x}px`;
+    this.mazeDiv.appendChild(this.animationTarget);
+
+    if (type === 'powerPellet') {
+      this.animationTarget.classList.add('power-pellet');
+    }
+
+    this.reset();
+  }
+
+  /**
+   * Determines the Pickup image based on type and point value
+   * @param {('pacdot'|'powerPellet'|'fruit')} type - The classification of pickup
+   * @param {Number} points
+   * @returns {String}
+   */
+  determineImage(type, points) {
+    let image = '';
+
+    if (type === 'fruit') {
+      image = this.fruitImages[points] || 'cherry';
+    } else {
+      image = type;
+    }
+
+    return `url(app/style/graphics/spriteSheets/pickups/${image}.svg)`;
+  }
+
+  /**
+   * Shows a bonus fruit, resetting its point value and image
+   * @param {number} points
+   */
+  showFruit(points) {
+    this.points = points;
+    this.animationTarget.style.backgroundImage = this.determineImage(
+      this.type, points,
+    );
+    this.animationTarget.style.visibility = 'visible';
+  }
+
+  /**
+   * Makes the fruit invisible (happens if Pacman was too slow)
+   */
+  hideFruit() {
+    this.animationTarget.style.visibility = 'hidden';
+  }
+
+  /**
+   * Returns true if the Pickup is touching a bounding box at Pacman's center
+   * @param {({ x: number, y: number, size: number})} pickup
+   * @param {({ x: number, y: number, size: number})} originalPacman
+   */
+  checkForCollision(pickup, originalPacman) {
+    const pacman = Object.assign({}, originalPacman);
+
+    pacman.x += (pacman.size * 0.25);
+    pacman.y += (pacman.size * 0.25);
+    pacman.size /= 2;
+
+    return (pickup.x < pacman.x + pacman.size
+      && pickup.x + pickup.size > pacman.x
+      && pickup.y < pacman.y + pacman.size
+      && pickup.y + pickup.size > pacman.y);
+  }
+
+  /**
+   * Checks to see if the pickup is close enough to Pacman to be considered for collision detection
+   * @param {number} maxDistance - The maximum distance Pacman can travel per cycle
+   * @param {({ x:number, y:number })} pacmanCenter - The center of Pacman's hitbox
+   * @param {Boolean} debugging - Flag to change the appearance of pickups for testing
+   */
+  checkPacmanProximity(maxDistance, pacmanCenter, debugging) {
+    if (this.animationTarget.style.visibility !== 'hidden') {
+      const distance = Math.sqrt(
+        ((this.center.x - pacmanCenter.x) ** 2)
+        + ((this.center.y - pacmanCenter.y) ** 2),
+      );
+
+      this.nearPacman = (distance <= maxDistance);
+
+      if (debugging) {
+        this.animationTarget.style.background = this.nearPacman
+          ? 'lime' : 'red';
+      }
+    }
+  }
+
+  /**
+   * Checks if the pickup is visible and close to Pacman
+   * @returns {Boolean}
+   */
+  shouldCheckForCollision() {
+    return this.animationTarget.style.visibility !== 'hidden'
+      && this.nearPacman;
+  }
+
+  /**
+   * If the Pickup is still visible, it checks to see if it is colliding with Pacman.
+   * It will turn itself invisible and cease collision-detection after the first
+   * collision with Pacman.
+   */
+  update() {
+    if (this.shouldCheckForCollision()) {
+      if (this.checkForCollision(
+        {
+          x: this.x,
+          y: this.y,
+          size: this.size,
+        }, {
+          x: this.pacman.position.left,
+          y: this.pacman.position.top,
+          size: this.pacman.measurement,
+        },
+      )) {
+        this.animationTarget.style.visibility = 'hidden';
+        window.dispatchEvent(new CustomEvent('awardPoints', {
+          detail: {
+            points: this.points,
+            type: this.type,
+            pickup: this,
+          },
+        }));
+
+        if (this.type === 'pacdot') {
+          window.dispatchEvent(new Event('dotEaten'));
+        } else if (this.type === 'powerPellet') {
+          window.dispatchEvent(new Event('dotEaten'));
+          window.dispatchEvent(new Event('powerUp'));
+        }
+      }
+    }
+  }
+}
+
+
 class GameCoordinator {
   constructor() {
     this.gameUi = document.getElementById('game-ui');
@@ -1960,26 +2162,36 @@ class GameCoordinator {
 
     const _vw = Math.min(document.documentElement.clientWidth, window.innerWidth || 0);
     const _vh = Math.min(document.documentElement.clientHeight, window.innerHeight || 0);
-    
-    // Original physical pixel dimensions of the game UI based on the load-time scaledTileSize
-    const uiWidth = this.scaledTileSize * 28;
-    const uiHeight = this.scaledTileSize * 36; // Maze + UI height roughly
+
+    // Temporarily clear transform to get true scrollHeight/scrollWidth
+    this.gameUi.style.transform = 'none';
+    const uiWidth = this.gameUi.scrollWidth;
+    const uiHeight = this.gameUi.scrollHeight;
 
     let scaleFactor = 1;
+    let marginTop = 0;
 
     if (_vw > _vh) {
-      // Landscape: scale so the height of the UI is 95% of viewport height
+      // Landscape mobile: scale so the height of the UI is 95% of viewport height
       scaleFactor = (_vh * 0.95) / uiHeight;
       this.gameUi.style.transform = `scale(${scaleFactor})`;
-      this.gameUi.style.transformOrigin = 'center center';
+      this.gameUi.style.transformOrigin = 'center top';
+
+      const scaledHeight = uiHeight * scaleFactor;
+      marginTop = Math.max(0, (_vh - scaledHeight) / 2);
     } else {
-      // Portrait: fit width (93%) or height (61%)
+      // Portrait mobile: fit width (93%) or height (61%)
       const scaleW = (_vw * 0.93) / uiWidth;
       const scaleH = (_vh * 0.61) / uiHeight;
       scaleFactor = Math.min(scaleW, scaleH);
       this.gameUi.style.transform = `scale(${scaleFactor})`;
       this.gameUi.style.transformOrigin = 'center top';
+
+      // Keep top margin on portrait to leave room for the header text
+      marginTop = 70;
     }
+
+    this.gameUi.style.marginTop = `${marginTop}px`;
   }
 
   handleTouchStart(e) {
@@ -3771,208 +3983,6 @@ const triviaData = [
     correctIndex: 1
   }
 ];
-
-
-class Pickup {
-  constructor(type, scaledTileSize, column, row, pacman, mazeDiv, points) {
-    this.type = type;
-    this.pacman = pacman;
-    this.mazeDiv = mazeDiv;
-    this.points = points;
-    this.nearPacman = false;
-
-    this.fruitImages = {
-      100: 'cherry',
-      300: 'strawberry',
-      500: 'orange',
-      700: 'apple',
-      1000: 'melon',
-      2000: 'galaxian',
-      3000: 'bell',
-      5000: 'key',
-    };
-
-    this.setStyleMeasurements(type, scaledTileSize, column, row, points);
-  }
-
-  /**
-   * Resets the pickup's visibility
-   */
-  reset() {
-    this.animationTarget.style.visibility = (this.type === 'fruit')
-      ? 'hidden' : 'visible';
-  }
-
-  /**
-   * Sets various style measurements for the pickup depending on its type
-   * @param {('pacdot'|'powerPellet'|'fruit')} type - The classification of pickup
-   * @param {number} scaledTileSize
-   * @param {number} column
-   * @param {number} row
-   * @param {number} points
-   */
-  setStyleMeasurements(type, scaledTileSize, column, row, points) {
-    if (type === 'pacdot') {
-      this.size = scaledTileSize * 0.25;
-      this.x = (column * scaledTileSize) + ((scaledTileSize / 8) * 3);
-      this.y = (row * scaledTileSize) + ((scaledTileSize / 8) * 3);
-    } else if (type === 'powerPellet') {
-      this.size = scaledTileSize;
-      this.x = (column * scaledTileSize);
-      this.y = (row * scaledTileSize);
-    } else {
-      this.size = scaledTileSize * 2;
-      this.x = (column * scaledTileSize) - (scaledTileSize * 0.5);
-      this.y = (row * scaledTileSize) - (scaledTileSize * 0.5);
-    }
-
-    this.center = {
-      x: column * scaledTileSize,
-      y: row * scaledTileSize,
-    };
-
-    this.animationTarget = document.createElement('div');
-    this.animationTarget.style.position = 'absolute';
-    this.animationTarget.style.backgroundSize = `${this.size}px`;
-    this.animationTarget.style.backgroundImage = this.determineImage(
-      type, points,
-    );
-    this.animationTarget.style.height = `${this.size}px`;
-    this.animationTarget.style.width = `${this.size}px`;
-    this.animationTarget.style.top = `${this.y}px`;
-    this.animationTarget.style.left = `${this.x}px`;
-    this.mazeDiv.appendChild(this.animationTarget);
-
-    if (type === 'powerPellet') {
-      this.animationTarget.classList.add('power-pellet');
-    }
-
-    this.reset();
-  }
-
-  /**
-   * Determines the Pickup image based on type and point value
-   * @param {('pacdot'|'powerPellet'|'fruit')} type - The classification of pickup
-   * @param {Number} points
-   * @returns {String}
-   */
-  determineImage(type, points) {
-    let image = '';
-
-    if (type === 'fruit') {
-      image = this.fruitImages[points] || 'cherry';
-    } else {
-      image = type;
-    }
-
-    return `url(app/style/graphics/spriteSheets/pickups/${image}.svg)`;
-  }
-
-  /**
-   * Shows a bonus fruit, resetting its point value and image
-   * @param {number} points
-   */
-  showFruit(points) {
-    this.points = points;
-    this.animationTarget.style.backgroundImage = this.determineImage(
-      this.type, points,
-    );
-    this.animationTarget.style.visibility = 'visible';
-  }
-
-  /**
-   * Makes the fruit invisible (happens if Pacman was too slow)
-   */
-  hideFruit() {
-    this.animationTarget.style.visibility = 'hidden';
-  }
-
-  /**
-   * Returns true if the Pickup is touching a bounding box at Pacman's center
-   * @param {({ x: number, y: number, size: number})} pickup
-   * @param {({ x: number, y: number, size: number})} originalPacman
-   */
-  checkForCollision(pickup, originalPacman) {
-    const pacman = Object.assign({}, originalPacman);
-
-    pacman.x += (pacman.size * 0.25);
-    pacman.y += (pacman.size * 0.25);
-    pacman.size /= 2;
-
-    return (pickup.x < pacman.x + pacman.size
-      && pickup.x + pickup.size > pacman.x
-      && pickup.y < pacman.y + pacman.size
-      && pickup.y + pickup.size > pacman.y);
-  }
-
-  /**
-   * Checks to see if the pickup is close enough to Pacman to be considered for collision detection
-   * @param {number} maxDistance - The maximum distance Pacman can travel per cycle
-   * @param {({ x:number, y:number })} pacmanCenter - The center of Pacman's hitbox
-   * @param {Boolean} debugging - Flag to change the appearance of pickups for testing
-   */
-  checkPacmanProximity(maxDistance, pacmanCenter, debugging) {
-    if (this.animationTarget.style.visibility !== 'hidden') {
-      const distance = Math.sqrt(
-        ((this.center.x - pacmanCenter.x) ** 2)
-        + ((this.center.y - pacmanCenter.y) ** 2),
-      );
-
-      this.nearPacman = (distance <= maxDistance);
-
-      if (debugging) {
-        this.animationTarget.style.background = this.nearPacman
-          ? 'lime' : 'red';
-      }
-    }
-  }
-
-  /**
-   * Checks if the pickup is visible and close to Pacman
-   * @returns {Boolean}
-   */
-  shouldCheckForCollision() {
-    return this.animationTarget.style.visibility !== 'hidden'
-      && this.nearPacman;
-  }
-
-  /**
-   * If the Pickup is still visible, it checks to see if it is colliding with Pacman.
-   * It will turn itself invisible and cease collision-detection after the first
-   * collision with Pacman.
-   */
-  update() {
-    if (this.shouldCheckForCollision()) {
-      if (this.checkForCollision(
-        {
-          x: this.x,
-          y: this.y,
-          size: this.size,
-        }, {
-          x: this.pacman.position.left,
-          y: this.pacman.position.top,
-          size: this.pacman.measurement,
-        },
-      )) {
-        this.animationTarget.style.visibility = 'hidden';
-        window.dispatchEvent(new CustomEvent('awardPoints', {
-          detail: {
-            points: this.points,
-            type: this.type,
-            pickup: this,
-          },
-        }));
-
-        if (this.type === 'pacdot') {
-          window.dispatchEvent(new Event('dotEaten'));
-        } else if (this.type === 'powerPellet') {
-          window.dispatchEvent(new Event('dotEaten'));
-          window.dispatchEvent(new Event('powerUp'));
-        }
-      }
-    }
-  }
-}
 
 
 class CharacterUtil {
