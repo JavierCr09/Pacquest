@@ -136,10 +136,17 @@ class GameCoordinator {
             icon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
           }
         }
-        // Recalculate layout after the browser finishes adjusting the viewport
-        // Two passes: fast (100ms) for most browsers, slow (350ms) for those that animate
+        // Recalculate layout: fire at 100ms, 300ms and 600ms to catch
+        // all browsers (some animate the fullscreen transition slowly)
         setTimeout(() => this.handleResize(), 100);
-        setTimeout(() => this.handleResize(), 350);
+        setTimeout(() => this.handleResize(), 300);
+        setTimeout(() => this.handleResize(), 600);
+      });
+      // Safari / iOS uses the webkit-prefixed event
+      document.addEventListener('webkitfullscreenchange', () => {
+        setTimeout(() => this.handleResize(), 100);
+        setTimeout(() => this.handleResize(), 300);
+        setTimeout(() => this.handleResize(), 600);
       });
     }
 
@@ -856,35 +863,56 @@ class GameCoordinator {
     const _vw = Math.min(document.documentElement.clientWidth, window.innerWidth || 0);
     const _vh = Math.min(document.documentElement.clientHeight, window.innerHeight || 0);
 
-    // Temporarily clear transform to get true scrollHeight/scrollWidth
+    // ---------------------------------------------------------------
+    // Step 1: Clear all inline overrides so CSS doesn't inflate height
+    // The portrait media query sets height:100% on game-ui, which would
+    // make scrollHeight equal the full viewport — giving wrong scale.
+    // We force height:auto and marginTop:0 so we measure true content.
+    // ---------------------------------------------------------------
     this.gameUi.style.transform = 'none';
+    this.gameUi.style.height = 'auto';
+    this.gameUi.style.marginTop = '0px';
+
+    // Force the browser to reflow with these overrides before measuring
+    // eslint-disable-next-line no-unused-expressions
+    void this.gameUi.offsetHeight;
+
     const uiWidth = this.gameUi.scrollWidth;
     const uiHeight = this.gameUi.scrollHeight;
 
+    // ---------------------------------------------------------------
+    // Step 2: Calculate scale factor
+    // ---------------------------------------------------------------
     let scaleFactor = 1;
     let marginTop = 0;
 
     if (_vw > _vh) {
-      // Landscape mobile: scale so the height of the UI is 95% of viewport height
+      // --- Landscape ---
+      // Scale so the UI fills 95% of the viewport height
       scaleFactor = (_vh * 0.95) / uiHeight;
-      this.gameUi.style.transform = `scale(${scaleFactor})`;
-      this.gameUi.style.transformOrigin = 'center top';
-
       const scaledHeight = uiHeight * scaleFactor;
       marginTop = Math.max(0, (_vh - scaledHeight) / 2);
     } else {
-      // Portrait mobile: fit width (93%) or height (61%)
-      const scaleW = (_vw * 0.93) / uiWidth;
-      const scaleH = (_vh * 0.61) / uiHeight;
+      // --- Portrait ---
+      // Reserve 70px for the fixed header buttons at the top
+      const headerH = 70;
+      const availableH = _vh - headerH;
+      const scaleW = (_vw * 0.95) / uiWidth;   // 95% of width
+      const scaleH = availableH / uiHeight;     // full available height below header
       scaleFactor = Math.min(scaleW, scaleH);
-      this.gameUi.style.transform = `scale(${scaleFactor})`;
-      this.gameUi.style.transformOrigin = 'center top';
-
-      // Keep top margin on portrait to leave room for the header text
-      marginTop = 70;
+      marginTop = headerH;
     }
 
+    // ---------------------------------------------------------------
+    // Step 3: Apply transform and margin; restore height to 'auto'
+    // (the inline height:auto overrides the CSS height:100% so CSS
+    //  flex layout uses the scaled visual size, not the full viewport)
+    // ---------------------------------------------------------------
+    this.gameUi.style.transform = `scale(${scaleFactor})`;
+    this.gameUi.style.transformOrigin = 'center top';
     this.gameUi.style.marginTop = `${marginTop}px`;
+    // Keep height as 'auto' so it wraps content tightly at every scale
+    // (already set above; no need to clear it)
   }
 
   handleTouchStart(e) {
